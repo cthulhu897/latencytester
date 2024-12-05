@@ -4,14 +4,10 @@
 mkdir -p gen/latencypb
 
 # Generar archivos Protobuf en la ubicación correcta
-protoc --go_out=. --go-grpc_out=. proto/latency.proto
-
-# Mover archivos generados al directorio adecuado
-mv latencytester/gen/latencypb/* gen/latencypb/
-rm -rf latencytester/gen
+protoc --go_out=gen --go-grpc_out=gen proto/latency.proto
 
 # Limpiar dependencias y compilar
 go mod tidy
-go build latencyclient.go
-go build latencyserver.go
+go build -o ./client/ ./client 
+go build -o ./server/ ./server 
 

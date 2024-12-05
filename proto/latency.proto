@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package latency;
 
-option go_package = "latencytester/gen/latencypb";
-
+option go_package = "latencytester/";
 
 service LatencyService {
     rpc MeasureLatency (LatencyRequest) returns (LatencyResponse);
@@ -11,8 +10,10 @@ service LatencyService {
 
 message LatencyRequest {
     string message = 1;
+    float latency_ms = 2; // Latencia enviada por el cliente
 }
 
 message LatencyResponse {
     string message = 1;
+    repeated float recent_latencies = 2; // Historial de latencias enviadas por el servidor
 }
