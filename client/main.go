@@ -16,7 +16,7 @@ import (
 func main() {
 	// Parámetros de línea de comandos
 	serverAddress := flag.String("server", "localhost:50051", "Dirección del servidor (host:puerto)")
-	numTests := flag.Int("tests", 15, "Número de pruebas a realizar")
+	numTests := flag.Int("tests", 21, "Número de pruebas a realizar")
 	flag.Parse()
 
 	// Conexión al servidor
@@ -58,7 +58,7 @@ func main() {
 		lastLatency = durationMs
 
 		// Esperar 500 ms antes de la siguiente prueba
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(600 * time.Millisecond)
 	}
 
 	// Análisis final de las latencias medidas
