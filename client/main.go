@@ -19,14 +19,14 @@ import (
 // 3. Elimina las 5 latencias más bajas y las 5 más altas.
 // 4. Retorna el mínimo, máximo y la media del subset restante.
 func analyzeLatencies(latencies []float32) (float32, float32, float32) {
-	if len(latencies) <= 10 {
+	if len(latencies) <= 6 {
 		return 0, 0, 0
 	}
 
 	arr := append([]float32(nil), latencies...)
 	sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
 
-	arr = arr[3 : len(arr)-3]
+	arr = arr[2 : len(arr)-2]
 	min, max := arr[0], arr[len(arr)-1]
 
 	var sum float32
@@ -68,7 +68,7 @@ func main() {
 			fmt.Println("Finalizando pruebas...")
 			// Analizar las latencias
 			min, max, avg := analyzeLatencies(latencies)
-			if len(latencies) > 10 {
+			if len(latencies) > 5 {
 				fmt.Println("Análisis de latencias (descartando bajas/altas):")
 				fmt.Printf("Mínimo: %.3f ms\n", min)
 				fmt.Printf("Máximo: %.3f ms\n", max)
