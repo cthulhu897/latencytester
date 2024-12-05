@@ -13,66 +13,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-func main() {
-	// Parámetros de línea de comandos
-	serverAddress := flag.String("server", "localhost:50051", "Dirección del servidor (host:puerto)")
-	numTests := flag.Int("tests", 21, "Número de pruebas a realizar")
-	flag.Parse()
-
-	// Conexión al servidor
-	conn, err := grpc.Dial(*serverAddress, grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("Error al conectarse al servidor: %v", err)
-	}
-	defer conn.Close()
-
-	client := pb.NewLatencyServiceClient(conn)
-
-	fmt.Printf("Iniciando pruebas de latencia hacia %s (%d pruebas)\n", *serverAddress, *numTests)
-
-	var lastLatency float32 = 0
-	var latencies []float32
-
-	for i := 0; i < *numTests; i++ {
-		req := &pb.LatencyRequest{
-			Message:   "ping",
-			LatencyMs: lastLatency,
-		}
-
-		start := time.Now()
-		_, err := client.MeasureLatency(context.Background(), req)
-		durationMs := float32(time.Since(start).Seconds() * 1000) // Latencia actual en ms
-
-		if err != nil {
-			log.Printf("Error en la solicitud: %v\n", err)
-			continue
-		}
-
-		// Imprimir la latencia medida en esta prueba
-		fmt.Printf("Prueba %d: Latencia = %.3f ms\n", i+1, durationMs)
-
-		// Guardar la latencia en la lista para análisis posterior
-		latencies = append(latencies, durationMs)
-
-		// Actualizar la última latencia medida
-		lastLatency = durationMs
-
-		// Esperar 500 ms antes de la siguiente prueba
-		time.Sleep(600 * time.Millisecond)
-	}
-
-	// Análisis final de las latencias medidas
-	if len(latencies) > 0 {
-		min, max, avg := analyzeLatencies(latencies)
-		fmt.Println("\n--- Resumen de Latencias ---")
-		fmt.Printf("Mejor latencia (mínima): %.3f ms\n", min)
-		fmt.Printf("Peor latencia (máxima):  %.3f ms\n", max)
-		fmt.Printf("Latencia promedio:       %.3f ms\n", avg)
-	} else {
-		fmt.Println("No se pudieron medir latencias correctamente.")
-	}
-}
-
 // analyzeLatencies:
 // 1. Crea una copia del slice.
 // 2. Ordena las latencias de menor a mayor.
@@ -86,7 +26,7 @@ func analyzeLatencies(latencies []float32) (float32, float32, float32) {
 	arr := append([]float32(nil), latencies...)
 	sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
 
-	arr = arr[5 : len(arr)-5]
+	arr = arr[3 : len(arr)-3]
 	min, max := arr[0], arr[len(arr)-1]
 
 	var sum float32
@@ -96,4 +36,61 @@ func analyzeLatencies(latencies []float32) (float32, float32, float32) {
 	avg := sum / float32(len(arr))
 
 	return min, max, avg
+}
+
+func main() {
+	serverAddress := flag.String("server", "localhost:50051", "Dirección del servidor (host:puerto)")
+	flag.Parse()
+
+	conn, err := grpc.Dial(*serverAddress, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("Error al conectarse al servidor: %v", err)
+	}
+	defer conn.Close()
+
+	client := pb.NewLatencyServiceClient(conn)
+	req := &pb.LatencyRequest{Message: "Prueba"}
+
+	fmt.Println("Presiona Enter para detener la prueba.")
+	stop := make(chan struct{})
+
+	// Goroutine para detener la ejecución con Enter
+	go func() {
+		fmt.Scanln()
+		close(stop)
+	}()
+
+	var latencies []float32
+
+	for {
+		select {
+		case <-stop:
+			fmt.Println("Finalizando pruebas...")
+			// Analizar las latencias
+			min, max, avg := analyzeLatencies(latencies)
+			if len(latencies) > 10 {
+				fmt.Println("Análisis de latencias (descartando bajas/altas):")
+				fmt.Printf("Mínimo: %.3f ms\n", min)
+				fmt.Printf("Máximo: %.3f ms\n", max)
+				fmt.Printf("Media: %.3f ms\n", avg)
+			} else {
+				fmt.Println("No se recopilaron suficientes datos para el análisis filtrado.")
+			}
+			return
+		default:
+			// Medir latencia
+			start := time.Now()
+			_, err := client.MeasureLatency(context.Background(), req)
+			if err != nil {
+				// Si hay error, solo lo registramos y continuamos
+				log.Printf("Error en la solicitud: %v", err)
+				continue
+			}
+			duration := float32(time.Since(start).Seconds() * 1000)
+			fmt.Printf("Latencia: %.3f ms\n", duration)
+
+			// Guardar la latencia
+			latencies = append(latencies, duration)
+		}
+	}
 }
