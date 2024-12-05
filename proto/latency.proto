@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package latency;
+
+option go_package = "latencytester/gen/latencypb";
+
+
+service LatencyService {
+    rpc MeasureLatency (LatencyRequest) returns (LatencyResponse);
+}
+
+message LatencyRequest {
+    string message = 1;
+}
+
+message LatencyResponse {
+    string message = 1;
+}
